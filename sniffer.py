@@ -136,7 +136,42 @@ def parse_icmp_packet(data):
     return  packet_data
 
 
+def parse_udp_packet(data):
+    """
+        0      7 8     15 16    23 24    31
+        +--------+--------+--------+--------+
+        |     Source      |   Destination   |
+        |      Port       |      Port       |
+        +--------+--------+--------+--------+
+        |                 |                 |
+        |     Length      |    Checksum     |
+        +--------+--------+--------+--------+
+        |
+        |          data octets ...
+        +---------------- ...
+    """
+    packet_data = {}
+
+    udp_header = data[20:28]
+    udp_header = struct.unpack('!HHHH', udp_header)
+    src_port = udp_header[0]
+    dest_port = udp_header[1]
+    length = udp_header[2]
+    checksum = udp_header[3]
+
+    packet_data['src_port'] = src_port
+    packet_data['dest_port'] = dest_port
+    packet_data['length'] = length
+    packet_data['checksum'] = checksum
+
+    packet_data['data'] = data[28:]
+
+    return  packet_data
+
+
+
 def main():
+    COUNT = 0
     sock = create_socket()
     while True:
         data, address_info = recv_packet(sock)
@@ -144,11 +179,11 @@ def main():
         protocol = packet_data['protocol']
         if  protocol == 6:
             packet_data = dict(packet_data.items() + parse_tcp_packet(data).items())
-            if packet_data['src_port'] == 80:
-                print packet_data
+            print  packet_data
         elif protocol == 1:
             packet_data = dict(packet_data.items() + parse_icmp_packet(data).items())
-        #            print packet_data
+        elif  protocol == 17:
+            packet_data = dict(packet_data.items() + parse_udp_packet(data).items())
         else:
             pass
 
